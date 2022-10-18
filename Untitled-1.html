@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Happy Birthday!</title>
+        <style>
+            html, body { margin: 0; padding: 0; overflow: hidden; }
+        </style>
+    </head>
+    <body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.145.0/three.min.js"></script>
+        <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script>
+        <script>
+            var scene = new THREE.Scene();
+            var aspect = window.innerWidth / window.innerHeight;
+            var camera = new THREE.PerspectiveCamera( 75, aspect, 0.1, 1000 );
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            document.body.appendChild( renderer.domElement );
+
+            var box = new THREE.BoxGeometry( 1, 1, 1 );
+            var sphere = new THREE.SphereGeometry( 5, 96, 48 );
+
+            var material = new THREE.MeshPhongMaterial( { color: 0x1f1e33 } );
+            var material2 = new THREE.MeshPhongMaterial( { color: 0x4d3900 } );
+            var cube = new THREE.Mesh( box, material2 );
+            var cube2 = new THREE.Mesh( box, material2 );
+            var ball = new THREE.Mesh( sphere, material );
+            scene.add( cube );
+            scene.add( cube2 );
+            scene.add( ball );
+            camera.position.z = 15;
+            cube.position.x = 7;
+            cube2.position.x = -7;
+            const light = new THREE.DirectionalLight( 0xffffff, 4 );
+            const light2 = new THREE.AmbientLight( 0x444444, 7 );
+            light.position.set( 80, 40, -80 );
+            scene.add( light );
+            scene.add( light2 );
+
+            
+            var loader = new THREE.GLTFLoader();
+            loader.load( "/resources/A.glb", function ( gltf ) {
+                const model = gltf.scene;
+                model.traverse((obj) => {
+                })
+                model.scale.set(0.1,0.1,0.1);
+                model.castShadow = true;
+                model.rotation.x = 1.5;
+                model.rotation.x = 1.5;
+                model.position.z = 4.5;
+                model.position.y = 1;
+                scene.add( model );
+            }, undefined, function ( error ) {
+                console.error( error );
+            } );
+
+            var x, y;
+            var render = function () {
+            requestAnimationFrame( render );
+            x = cube.position.x;
+            z = cube.position.z;
+            cube.position.x = x * Math.cos(0.01) - z * Math.sin(0.01);
+            cube.position.z = x * Math.sin(0.01) + z * Math.cos(0.01);
+            x = cube2.position.x;
+            z = cube2.position.z;
+            cube2.position.x = x * Math.cos(0.01) - z * Math.sin(0.01);
+            cube2.position.z = x * Math.sin(0.01) + z * Math.cos(0.01);
+            x = light.position.x;
+            z = light.position.z;
+            light.position.x = x * Math.cos(0.005) - z * Math.sin(0.005);
+            light.position.z = x * Math.sin(0.005) + z * Math.cos(0.005);
+            cube.rotation.x += 0.1;
+            cube.rotation.y += 0.1;
+            cube2.rotation.x -= 0.1;
+            cube2.rotation.y -= 0.1;
+            renderer.render( scene, camera );
+            };
+
+            render();
+        </script>
+    </body>
+</html>
