@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>: )</title>
+        <style>
+            @import url("https://webgl2fundamentals.org/webgl/resources/webgl-tutorials.css");
+            body {
+                margin: 0;
+            }
+            canvas {
+                width: 100vw;
+                height: 100vh;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas> 
+        <div id="uiContainer">
+            <div id="ui">
+              <div id="level"></div>
+              <div id="mode"></div>
+            </div>
+          </div>
+    </body>
+</html>
+
+
+<script src="https://webgl2fundamentals.org/webgl/resources/webgl-utils.js"></script>
+<script src="https://webgl2fundamentals.org/webgl/resources/webgl-lessons-ui.js"></script>
+<script src="https://webgl2fundamentals.org/webgl/resources/m3.js"></script>
+
+
+<script>
+"use strict";
+
+var vs = `#version 300 es
+in vec2 a_position;
+uniform vec2 u_resolution;
+
+void main() {
+    vec2 zeroToOne = a_position / u_resolution;
+    vec2 zeroToTwo = zeroToOne * 2.0;
+    vec2 clipSpace = zeroToTwo - 1.0;
+
+    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+}
+`;
+
+var fs = `#version 300 es
+precision highp float;
+uniform vec4 u_color;
+out vec4 outColor;
+
+void main() {
+  outColor = u_color;
+}
+`;
+
+function init() {
+    var canvas = document.querySelector("#canvas");
+    var gl = canvas.getContext("webgl2");
+    if(!gl){return;}
+
+    var program = webglUtils.createProgramFromSources(gl, [vs, fs]);
+    var positionLocation = gl.getAttribLocation(program, "a_position");
+    var resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
+    var colorLocation = gl.getUniformLocation(program, "u_color");
+    var vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.enableVertexAttribArray(positionLocation);
+
+
+    var size = 2;
+    var type = gl.FLOAT;
+    var normalize = false;
+    var stride = 0;
+    var offset = 0;
+    gl.vertexAttribPointer(positionLocation, size, type, normalize, stride, offset);
+
+    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+
+    gl.uniform4f(colorLocation, 0, 1, 1, 1);
+
+    var x = [400, 100, 700];
+    var y = [50, 650, 650];
+    setTriangle(gl, x, y);
+
+    display(gl, 0, 3);
+
+    var level = 0;
+    var color_mode = 0;
+    webglLessonsUI.setupSlider("#level",      {value: level, slide: fractal_gen, max: 8});
+    webglLessonsUI.setupSlider("#mode",      {value: level, slide: color_mode_change, max: 3});
+
+
+    var previous_level;
+    function fractal_gen(event, ui){
+        x = [400, 100, 700];
+        y = [50, 650, 650];
+        setTriangle(gl, x, y);
+        color(0);
+        display(gl, 0, 3);
+
+        var current_level = ui.value;
+        previous_level = current_level;
+        var tri_length = 300;
+        if(ui.value > 0){
+            x = [250, 400, 550];
+            y = [350, 650, 350];
+            setTriangle(gl, x, y);
+            color(1);
+            display(gl, 0, 3);
+            fractal_child(current_level-1, x, y, 0, tri_length);
+            fractal_child(current_level-1, x, y, 1, tri_length);
+            fractal_child(current_level-1, x, y, 2, tri_length);
+        }
+    }
+
+    function fractal_child(cl, x, y, dir, tl){
+        if (cl < 1) return;
+        var x_bar, y_bar;
+        if(dir == 0){
+            x_bar = (x[dir] + x[dir+1]) / 2 - tl/2;
+            y_bar = (y[dir] + y[dir+1]) / 2;
+        } else if(dir == 1){
+            x_bar = (x[dir] + x[dir+1]) / 2;
+            y_bar = (y[dir] + y[dir+1]) / 2;
+        } else {
+            x_bar = (x[dir] + x[0]) / 2 - tl/4;
+            y_bar = (y[dir] + y[0]) / 2 - tl/2;
+        }
+
+        x = [
+            x_bar,
+            x_bar + tl/4,
+            x_bar + tl/2];
+        y = [
+            y_bar,
+            y_bar + tl/2,
+            y_bar];
+
+        setTriangle(gl, x, y);
+        color(previous_level - cl + 1);
+        display(gl, 0, 3);
+        fractal_child(cl-1, x, y, 0, tl/2);
+        fractal_child(cl-1, x, y, 1, tl/2);
+        fractal_child(cl-1, x, y, 2, tl/2);
+    }
+
+    var random_color;
+    function color_mode_change(event, ui){
+        color_mode = ui.value;
+        if(color_mode == 1){
+            random_color = [
+                Math.random(),
+                Math.random(),
+                Math.random(),
+                Math.random(),
+                Math.random(),
+                Math.random(),
+                Math.random(),
+                Math.random(),
+                Math.random(),
+            ]
+        }
+        
+        x = [400, 100, 700];
+        y = [50, 650, 650];
+        setTriangle(gl, x, y);
+        color(0);
+        display(gl, 0, 3);
+
+        var tri_length = 300;
+        if(previous_level > 0){
+            x = [250, 400, 550];
+            y = [350, 650, 350];
+            setTriangle(gl, x, y);
+            color(1);
+            display(gl, 0, 3);
+            fractal_child(previous_level-1, x, y, 0, tri_length);
+            fractal_child(previous_level-1, x, y, 1, tri_length);
+            fractal_child(previous_level-1, x, y, 2, tri_length);
+        }
+    }
+
+    var basic_color = [0,1,1,0.5,0,0,0.5,1,0];
+    function color(parameter){
+        if(color_mode == 0){
+            gl.uniform4f(colorLocation,
+            basic_color[parameter % 9],
+            basic_color[parameter % 9 + 1],
+            basic_color[parameter % 9 + 2],1);
+        } else if(color_mode == 1){
+            gl.uniform4f(colorLocation,
+            random_color[parameter % 9],
+            random_color[parameter % 9 + 1],
+            random_color[parameter % 9 + 2],1);
+        } else if(color_mode == 2){
+            if(parameter == 0){
+                gl.uniform4f(colorLocation,
+                1,0,0,1);
+            } else {
+                gl.uniform4f(colorLocation,
+                0,0,0,1);
+            }
+        } else {
+            gl.uniform4f(colorLocation,
+            0,
+            0,
+            0,1-0.1*parameter);
+        }
+    }
+}
+
+function setTriangle(gl, x, y){
+    console.log(x);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        x[0],   y[0],
+        x[1],   y[1],
+        x[2],   y[2],
+    ]),
+    gl.STATIC_DRAW);
+}
+
+function display(gl, offset, count){
+    gl.drawArrays(gl.TRIANGLES, offset, count);
+}
+
+init();
+</script>
